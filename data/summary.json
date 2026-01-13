@@ -1,0 +1,43 @@
+{
+  "top_genres_by_popularity": {
+    "pop-film": 59.283,
+    "k-pop": 56.953,
+    "chill": 53.651,
+    "sad": 52.379,
+    "grunge": 49.594,
+    "indian": 49.539,
+    "anime": 48.772,
+    "emo": 48.128,
+    "sertanejo": 47.866,
+    "pop": 47.576,
+    "progressive-house": 46.615,
+    "piano": 45.273,
+    "mandopop": 45.025,
+    "deep-house": 44.808,
+    "brazil": 44.67
+  },
+  "happiest_genres": {
+    "salsa": 0.814838,
+    "forro": 0.760693,
+    "rockabilly": 0.726951,
+    "afrobeat": 0.698619,
+    "ska": 0.69672
+  },
+  "most_intense_genres": {
+    "death-metal": 0.93147,
+    "grindcore": 0.924201,
+    "metalcore": 0.914485,
+    "happy": 0.910971,
+    "hardstyle": 0.901246
+  },
+  "correlation_with_popularity": {
+    "danceability": 0.03544354596134648,
+    "tempo": 0.013211888443029937,
+    "energy": 0.0010531126538152788,
+    "liveness": -0.005396753083609593,
+    "acousticness": -0.025458057255118086,
+    "valence": -0.04052176220204288,
+    "speechiness": -0.04492998314226954,
+    "instrumentalness": -0.09514665337271314
+  }
+}
