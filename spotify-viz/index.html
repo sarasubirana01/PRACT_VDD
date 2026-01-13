@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Spotify: Emocionalidad y Popularidad</title>
+
+  <!-- Plotly (CDN) -->
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <!-- PapaParse para leer CSV -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; }
+    header { padding: 16px 20px; border-bottom: 1px solid #eee; }
+    h1 { font-size: 18px; margin: 0 0 6px; }
+    p { margin: 0; color: #555; font-size: 13px; }
+    main { padding: 14px 20px; }
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    label { font-size: 13px; color: #333; }
+    select, input[type="range"] { padding: 6px; }
+    #chart { width: 100%; height: 72vh; }
+    .small { font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Spotify — Mapa emocional (valence vs energy)</h1>
+    <p>Explora cómo varía la emocionalidad y la popularidad por género. Interactúa con filtros para descubrir patrones.</p>
+  </header>
+
+  <main>
+    <div class="controls">
+      <label>
+        Género:
+        <select id="genreSelect">
+          <option value="__ALL__">Todos</option>
+        </select>
+      </label>
+
+      <label>
+        Popularidad mínima: <span id="popVal">50</span>
+        <input id="popSlider" type="range" min="0" max="100" value="50" />
+      </label>
+
+      <span class="small">Tip: pasa el ratón para ver detalles (track, artista, popularidad).</span>
+    </div>
+
+    <div id="chart"></div>
+  </main>
+
+  <script>
+    const CSV_PATH = "data/spotify.csv";
+
+    let raw = [];
+    let genres = [];
+
+    const genreSelect = document.getElementById("genreSelect");
+    const popSlider = document.getElementById("popSlider");
+    const popVal = document.getElementById("popVal");
+
+    function num(x) {
+      const v = Number(x);
+      return Number.isFinite(v) ? v : null;
+    }
+
+    function buildGenreList(rows) {
+      const set = new Set();
+      rows.forEach(r => {
+        const g = (r.track_genre || "").trim();
+        if (g) set.add(g);
+      });
+      return Array.from(set).sort((a,b)=>a.localeCompare(b));
+    }
+
+    function filterRows() {
+      const g = genreSelect.value;
+      const minPop = Number(popSlider.value);
+
+      return raw.filter(r => {
+        const valence = num(r.valence);
+        const energy = num(r.energy);
+        const popularity = num(r.popularity);
+
+        if (valence === null || energy === null || popularity === null) return false;
+        if (popularity < minPop) return false;
+        if (g !== "__ALL__" && (r.track_genre || "").trim() !== g) return false;
+        return true;
+      });
+    }
+
+    function render() {
+      const rows = filterRows();
+      const x = rows.map(r => num(r.valence));
+      const y = rows.map(r => num(r.energy));
+      const size = rows.map(r => Math.max(6, (num(r.popularity) || 0) / 3)); // tamaño aprox
+      const color = rows.map(r => (r.track_genre || "").trim());
+
+      const hover = rows.map(r => {
+        const t = (r.track_name || "").trim();
+        const a = (r.artists || "").trim();
+        const p = num(r.popularity);
+        const v = num(r.valence);
+        const e = num(r.energy);
+        const emo = (v !== null && e !== null) ? (v*e).toFixed(3) : "NA";
+        return `<b>${t}</b><br>` +
+               `${a}<br>` +
+               `Género: ${colorify(r.track_genre)}<br>` +
+               `Popularidad: ${p}<br>` +
+               `Valence: ${v}<br>` +
+               `Energy: ${e}<br>` +
+               `Emotionality Index (v·e): ${emo}`;
+      });
+
+      function colorify(g){ return (g||"").trim() || "NA"; }
+
+      const trace = {
+        type: "scattergl",
+        mode: "markers",
+        x, y,
+        text: hover,
+        hoverinfo: "text",
+        marker: {
+          size,
+          opacity: 0.6,
+          color,            // Plotly asigna colores por categoría
+        }
+      };
+
+      const layout = {
+        margin: { l: 50, r: 20, t: 20, b: 50 },
+        xaxis: { title: "Valence (positividad)", range: [0, 1] },
+        yaxis: { title: "Energy (intensidad)", range: [0, 1] },
+        legend: { title: { text: "Género" } }
+      };
+
+      Plotly.newPlot("chart", [trace], layout, { responsive: true });
+    }
+
+    function initControls() {
+      genres.forEach(g => {
+        const opt = document.createElement("option");
+        opt.value = g;
+        opt.textContent = g;
+        genreSelect.appendChild(opt);
+      });
+
+      genreSelect.addEventListener("change", render);
+      popSlider.addEventListener("input", () => {
+        popVal.textContent = popSlider.value;
+        render();
+      });
+    }
+
+    Papa.parse(CSV_PATH, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        raw = results.data;
+        genres = buildGenreList(raw);
+        initControls();
+        render();
+      },
+      error: (err) => {
+        document.getElementById("chart").innerHTML =
+          "<p style='color:#b00'>Error cargando el CSV. Revisa la ruta data/spotify.csv</p>";
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
